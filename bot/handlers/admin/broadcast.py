@@ -19,10 +19,10 @@ async def send_message_callback_handler(call: CallbackQuery):
     if role >= Permission.BROADCAST:
         await bot.edit_message_text(chat_id=call.message.chat.id,
                                     message_id=call.message.message_id,
-                                    text='Отправьте сообщение для рассылки:',
+                                    text=translate('send_broadcast'),
                                     reply_markup=back("console"))
         return
-    await call.answer('Недостаточно прав')
+    await call.answer(translate('no_rights'))
 
 
 async def broadcast_messages(message: Message):
@@ -47,7 +47,7 @@ async def broadcast_messages(message: Message):
             pass
     await bot.edit_message_text(chat_id=message.chat.id,
                                 message_id=message_id,
-                                text='Рассылка завершена',
+                                text=translate('broadcast_finished'),
                                 reply_markup=back("console"))
     logger.info(f"Пользователь {user_info.id} ({user_info.first_name})"
                 f" совершил рассылку. Рассылка была отправлена {max_users} пользователям.")

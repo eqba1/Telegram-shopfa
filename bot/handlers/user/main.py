@@ -18,6 +18,7 @@ from bot.keyboards import check_sub, main_menu, categories_list, goods_list, use
 from bot.logger_mesh import logger
 from bot.misc import TgConfig, EnvKeys
 from bot.misc.payment import quick_pay, check_payment_status
+from bot.locales import translate
 
 
 async def start(message: Message):
@@ -43,7 +44,7 @@ async def start(message: Message):
             if not await check_sub_channel(chat_member):
                 markup = check_sub(chat)
                 await bot.send_message(user_id,
-                                       'Для начала подпишитесь на новостной канал',
+                                       translate('start_subscribe'),
                                        reply_markup=markup)
                 await bot.delete_message(chat_id=message.chat.id,
                                          message_id=message.message_id)
@@ -54,7 +55,7 @@ async def start(message: Message):
 
     markup = main_menu(role_data, chat, TgConfig.HELPER_URL)
     await bot.send_message(user_id,
-                           '⛩️ Основное меню',
+                           translate('main_menu'),
                            reply_markup=markup)
     await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
@@ -63,7 +64,7 @@ async def back_to_menu_callback_handler(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     user = check_user(call.from_user.id)
     markup = main_menu(user.role_id, TgConfig.CHANNEL_URL, TgConfig.HELPER_URL)
-    await bot.edit_message_text('⛩️ Основное меню',
+    await bot.edit_message_text(translate('main_menu'),
                                 chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
                                 reply_markup=markup)
@@ -83,7 +84,7 @@ async def shop_callback_handler(call: CallbackQuery):
     if len(categories) % 10 == 0:
         max_index -= 1
     markup = categories_list(categories, 0, max_index)
-    await bot.edit_message_text('🏪 Категории магазина',
+    await bot.edit_message_text(translate('shop_categories'),
                                 chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
                                 reply_markup=markup)
@@ -100,11 +101,11 @@ async def navigate_categories(call: CallbackQuery):
         markup = categories_list(categories, current_index, max_index)
         await bot.edit_message_text(message_id=call.message.message_id,
                                     chat_id=call.message.chat.id,
-                                    text='🏪 Категории магазина',
+                                    text=translate('shop_categories'),
                                     reply_markup=markup)
     else:
         await bot.answer_callback_query(callback_query_id=call.id,
-                                        text="❌ Такой страницы нет")
+                                        text=translate('page_not_found'))
 
 
 async def dummy_button(call: CallbackQuery):
@@ -121,7 +122,7 @@ async def items_list_callback_handler(call: CallbackQuery):
     if len(goods) % 10 == 0:
         max_index -= 1
     markup = goods_list(goods, category_name, 0, max_index)
-    await bot.edit_message_text('🏪 выберите нужный товар', chat_id=call.message.chat.id,
+    await bot.edit_message_text(translate('choose_item'), chat_id=call.message.chat.id,
                                 message_id=call.message.message_id, reply_markup=markup)
 
 
@@ -137,10 +138,10 @@ async def navigate_goods(call: CallbackQuery):
         markup = goods_list(goods, category_name, current_index, max_index)
         await bot.edit_message_text(message_id=call.message.message_id,
                                     chat_id=call.message.chat.id,
-                                    text='🏪 выберите нужный товар',
+                                    text=translate('choose_item'),
                                     reply_markup=markup)
     else:
-        await bot.answer_callback_query(callback_query_id=call.id, text="❌ Такой страницы нет")
+        await bot.answer_callback_query(callback_query_id=call.id, text=translate('page_not_found'))
 
 
 async def item_info_callback_handler(call: CallbackQuery):
@@ -149,7 +150,7 @@ async def item_info_callback_handler(call: CallbackQuery):
     TgConfig.STATE[user_id] = None
     item_info_list = get_item_info(item_name)
     category = item_info_list['category_name']
-    quantity = 'Количество - неограниченно'
+    quantity = translate('infinite_quantity')
     if not check_value(item_name):
         quantity = f'Количество - {select_item_values_amount(item_name)}шт.'
     markup = item_info(item_name, category)
@@ -182,8 +183,7 @@ async def buy_item_callback_handler(call: CallbackQuery):
             new_balance = buy_item_for_balance(user_id, item_price)
             await bot.edit_message_text(chat_id=call.message.chat.id,
                                         message_id=msg,
-                                        text=f'✅ Товар куплен. '
-                                             f'<b>Баланс</b>: <i>{new_balance}</i>₽\n\n{value_data["value"]}',
+                                        text=translate('item_purchased', balance=new_balance, value=value_data["value"]),
                                         parse_mode='HTML',
                                         reply_markup=back(f'item_{item_name}'))
             user_info = await bot.get_chat(user_id)
@@ -193,13 +193,13 @@ async def buy_item_callback_handler(call: CallbackQuery):
 
         await bot.edit_message_text(chat_id=call.message.chat.id,
                                     message_id=msg,
-                                    text='❌ Товара нет в  наличие',
+                                    text=translate('item_unavailable'),
                                     reply_markup=back(f'item_{item_name}'))
         return
 
     await bot.edit_message_text(chat_id=call.message.chat.id,
                                 message_id=msg,
-                                text='❌ Недостаточно средств',
+                                text=translate('not_enough_funds'),
                                 reply_markup=back(f'item_{item_name}'))
 
 
@@ -212,7 +212,7 @@ async def bought_items_callback_handler(call: CallbackQuery):
     if len(goods) % 10 == 0:
         max_index -= 1
     markup = user_items_list(bought_goods, 'user', 'profile', 'bought_items', 0, max_index)
-    await bot.edit_message_text('Ваши товары:', chat_id=call.message.chat.id,
+    await bot.edit_message_text(translate('your_items'), chat_id=call.message.chat.id,
                                 message_id=call.message.message_id, reply_markup=markup)
 
 
@@ -235,10 +235,10 @@ async def navigate_bought_items(call: CallbackQuery):
         markup = user_items_list(bought_goods, data, back_data, pre_back, current_index, max_index)
         await bot.edit_message_text(message_id=call.message.message_id,
                                     chat_id=call.message.chat.id,
-                                    text='Ваши товары:',
+                                    text=translate('your_items'),
                                     reply_markup=markup)
     else:
-        await bot.answer_callback_query(callback_query_id=call.id, text="❌ Такой страницы нет")
+        await bot.answer_callback_query(callback_query_id=call.id, text=translate('page_not_found'))
 
 
 async def bought_item_info_callback_handler(call: CallbackQuery):
@@ -269,7 +269,7 @@ async def rules_callback_handler(call: CallbackQuery):
                                     message_id=call.message.message_id, reply_markup=rules())
         return
 
-    await call.answer(text='❌ Правила не были добавлены')
+    await call.answer(text=translate('rules_not_added'))
 
 
 async def profile_callback_handler(call: CallbackQuery):
@@ -420,7 +420,7 @@ async def check_sub_to_channel(call: CallbackQuery):
         await bot.edit_message_text('⛩️ Основное меню', chat_id=call.message.chat.id,
                                     message_id=call.message.message_id, reply_markup=markup)
     else:
-        await call.answer(text='Вы не подписались')
+        await call.answer(text=translate('not_subscribed'))
 
 
 def register_user_handlers(dp: Dispatcher):
